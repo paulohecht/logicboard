@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAIJSURBVHgBpVK7bhNBFD0zYy+OWWJvbJQCIsRDIKiJkJAooIEfoEKigIqGP4BfoUqJQKKJRENBT4FARqQBChbJCmbXcXbX9g7nXk+iPMrs6mhm7uOce++MwbM7Hif4LE74NY4alqs5nnz9g/U0x63fGWAMBittvLqxitdXescIzMEW1sYVNja/oZ8XKHmeHVA5RQzPtPDowTX8iqPjLRhCkrvjEv+4Hx2B2BISb2wO0GGVhwgM/4dbQ/QYMOE5lwTv8TdA9jmxQ/tZVvn0SwrrF3kNUXZ0PmbfFfe73E+IjCh4lv7anIPnuRlauZmOqexRS3vCJATXt3exHfpWIiKT8ugTkYgkU0L862kGx2zP+q0V5tqrgtF4r0kIexOqCIbFvEjU9LUKWxmCI8Gn1RguTFzUlrh2uMbSgpQuSYT4tzotrUDItYIG8bkfQy5niUGSsMy1SySUUBLGtAiJeXO1rzlagWFVQvL28grydrSfLOqJIFQitpiQmPdrXVhWrbl77e00HV7evoCCAapOmyAJRGKb0PeCMWEQi0fG8emQahrS0xGe372Eez9HuP9jhPNZob7vfMqDXhvvLiYYtpqMZfzeNXpjMeNdTq1BZeVeDT6wxI/nOhzSYuo1d3P6CmdROV4lxeaEiDbmZJuRpHQyFKcvzPOKItqNNzppUZtymCXJSyexRgXpxn87TtvDZgojzQAAAABJRU5ErkJggg=="/>
+
+    <title>Logic Board</title>
+    <style>
+        body, html {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            padding: 0;
+            overflow: hidden;
+        }
+        #grid-wrapper {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: hidden;
+            width: 100%;
+        }
+        #grid {
+            background-color: #04814D;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            padding: 0;
+            transform-origin: top center;
+            flex-direction: column;
+            box-shadow: 0 5px 9px rgba(0, 0, 0, 0.4);
+        }
+        #grid .row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            padding: 0;
+            transform-origin: top center;
+            flex-direction: row;
+        }
+        .tile {
+            background-color: #04814D;
+            width: 18vw;
+            height: 18vw;
+            max-width: 60px;
+            max-height: 60px;
+            border: 0.5px solid #00693D;
+            transform-origin: center;
+            transition: transform 0.1s;
+            aspect-ratio: 1;
+        }
+        .tile.fixed {
+            background-color: #00693D;
+        }
+        .tile.drop {
+            background-color: dimgray !important;
+        }
+        .tile.dragging {
+            box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+        }
+        .tile.rotate-0 {
+            transition: transform 0s;
+            transform: rotate(0deg);
+        }
+        .tile.rotate-1 {
+            transform: rotate(90deg);
+        }
+        .tile.rotate-2 {
+            transform: rotate(180deg);
+        }
+        .tile.rotate-3 {
+            transform: rotate(270deg);
+        }
+        .tile.rotate-4 {
+            transform: rotate(360deg);
+        }
+        .shelf {
+            display: flex;
+            justify-content: center;
+            background-color: #646464;
+            gap: 5px;
+            padding: 10px 0;
+            box-shadow: 0 -5px 9px rgba(0, 0, 0, 0.4);
+            flex-wrap: wrap;
+        }
+        .footer {
+            background-color: white;
+            box-shadow: 0 -5px 9px rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            text-align: center;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: black;
+            opacity: 0.8;
+        }
+        .dialog {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .content {
+            background: white;
+            border-radius: 10px;
+            z-index: 1;
+            text-align: center;
+            margin: 20px;
+            padding: 0 20px 20px;
+            min-width: 300px;
+            max-width: 400px;
+        }
+        table.results {
+            width: 100%;
+        }
+        .buttons {
+            display: flex;
+            flex-direction: row;
+            margin: -4px;
+        }
+        .button {
+            border-radius: 10px;
+            flex: 1;
+            padding: 8px;
+            text-decoration: none;
+            color: black;
+            border: 1px solid black;
+            margin: 4px;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+        .on {
+            color: red;
+        }
+        .off {
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="grid-wrapper">
+        <div id="grid">
+            <!-- Dynamic tiles will be added here -->
+        </div>
+    </div>
+</div>
+<div class="shelf" id="shelf">
+    <!-- Static row tiles will be added here -->
+</div>
+<div class="footer buttons" id="footer">
+    <a class="button show-dialog" href="#">&#9658; Run</a>
+</div>
+
+<div id="dialog" class="dialog">
+    <div class="overlay hide-dialog"></div>
+    <div class="content">
+        <h2 id="level-name"></h2>
+        <hr>
+        <table class="results">
+            <thead>
+                <tr>
+                    <th>Input</th>
+                    <th></th>
+                    <th>Output</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody id="results">
+            </tbody>
+        </table>
+        <hr>
+        <div class="buttons">
+            <a id="start-button" class="button hide-dialog" href="#"> &#9998; Start</a>
+            <a id="edit-button" class="button hide-dialog" href="#"> &#9998; Edit</a>
+            <a id="run-button" class="button run-tests" href="#"> &#9658; Run</a>
+            <a id="next-button" class="button next-level" href="#"> &#9658; Next Level</a>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    const Levels = [
+        {
+            name: 'Drag to place',
+            grid: [
+                '[tile] [tile] [output] [tile] [tile]',
+                '[tile] [tile] [wire] [tile] [tile]',
+                '[tile] [tile] (wire) [tile] [tile]',
+                '[tile] [tile] (tile) [tile] [tile]',
+                '[tile] [tile] (wire) [tile] [tile]',
+                '[tile] [tile] [wire] [tile] [tile]',
+                '[tile] [tile] [input] [tile] [tile]',
+            ],
+            shelf: 'wire',
+            tests: '0-0 1-1',
+        },
+        {
+            name: 'Click to rotate',
+            grid: [
+                '[tile] [tile] [output] [tile] [tile]',
+                '[tile] [tile] [curve-3] [wire-1] [curve-1]',
+                '[tile] [tile] [tile] [tile] [wire]',
+                '[curve] (wire-1) (tile) (wire-1) [curve-2]',
+                '[wire] [tile] [tile] [tile] [tile]',
+                '[curve-3] [wire-1] [curve-1] [tile] [tile]',
+                '[tile] [tile] [input] [tile] [tile]',
+            ],
+            shelf: 'wire',
+            tests: '0-0 1-1',
+        },
+        {
+            name: 'Divide and conquer',
+            grid: [
+                '[tile] [output] [tile] [output] [tile]',
+                '[tile] [wire] [tile] [wire] [tile]',
+                '[tile] (tile) [tile] (tile) [tile]',
+                '[tile] (tile) (tile) (tile) [tile]',
+                '[tile] [tile] [wire] [tile] [tile]',
+                '[tile] [tile] [wire] [tile] [tile]',
+                '[tile] [tile] [input] [tile] [tile]',
+            ],
+            shelf: 'wire curve splitter',
+            tests: '0-00 1-11',
+        },
+        {
+            name: 'Or (wires only)',
+            grid: [
+                '[tile] [tile] [output] [tile] [tile]',
+                '[tile] [tile] [wire] [tile] [tile]',
+                '[tile] [tile] (tile) [tile] [tile]',
+                '[tile] (tile) (tile) (tile) [tile]',
+                '[tile] (tile) [tile] (tile) [tile]',
+                '[tile] [wire] [tile] [wire] [tile]',
+                '[tile] [input] [tile] [input] [tile]',
+            ],
+            shelf: 'tile wire curve splitter',
+            tests: '00-0 01-1 10-1 11-1',
+        },
+        {
+            name: 'One way (diode)',
+            grid: [
+                '[tile] [output] [tile] [output] [tile]',
+                '[tile] [wire] [tile] [wire] [tile]',
+                '[tile] [wire] [tile] [wire] [tile]',
+                '[tile] (tile) (tile) (tile) [tile]',
+                '[tile] [wire] [tile] [wire] [tile]',
+                '[tile] [wire] [tile] [wire] [tile]',
+                '[tile] [input] [tile] [input] [tile]',
+            ],
+            shelf: 'wire splitter diode',
+            tests: '00-00 10-11 11-11 01-01',
+        },
+        {
+            name: 'The Or gate',
+            grid: [
+                '[tile] [tile] [output] [tile] [tile]',
+                '(tile) (tile) (tile) (tile) (tile)',
+                '(tile) (tile) (tile) (tile) (tile)',
+                '(tile) (tile) (tile) (tile) (tile)',
+                '(tile) (tile) (tile) (tile) (tile)',
+                '(tile) (tile) (tile) (tile) (tile)',
+                '[tile] [input] [tile] [input] [tile]',
+            ],
+            shelf: 'tile wire curve splitter diode or and not',
+            tests: '00-0 01-1 10-1 11-1',
+        },
+    ];
+
+    const Assets = {
+        tile_0: '',
+        wire_0: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="72" fill="#929292"/></svg>',
+        wire_1: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="72" fill="#FF0000"/></svg>',
+        curve_0: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M72 34V38H59.8241L38 59.8241V72H34V59L34.1673 58L58 34.1673L59 34H72Z" fill="#929292"/></svg>',
+        curve_1: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M72 34V38H59.8241L38 59.8241V72H34V59L34.1673 58L58 34.1673L59 34H72Z" fill="#FF0000"/></svg>',
+        splitter_0: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_18)"><rect x="72" y="34" width="4" height="72" transform="rotate(90 72 34)" fill="#929292"/><rect x="34" y="38" width="4" height="34" fill="#929292"/></g><defs><clipPath id="clip0_6_18"><rect width="72" height="72" fill="white" transform="translate(72) rotate(90)"/></clipPath></defs></svg>',
+        splitter_1: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_24)"><rect x="72" y="34" width="4" height="72" transform="rotate(90 72 34)" fill="#FF0000"/><rect x="34" y="38" width="4" height="34" fill="#FF0000"/></g><defs><clipPath id="clip0_6_24"><rect width="72" height="72" fill="white" transform="translate(72) rotate(90)"/></clipPath></defs></svg>',
+        diode_00: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="28" fill="#929292"/><rect x="34" y="47" width="4" height="25" fill="#929292"/><rect x="14" y="20" width="44" height="2" fill="black"/><path d="M14.3494 56.5L36 19L57.6506 56.5H14.3494Z" fill="#D9D9D9" stroke="black"/></svg>',
+        diode_11: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="28" fill="#FF0000"/><rect x="34" y="47" width="4" height="25" fill="#FF0000"/><rect x="14" y="20" width="44" height="2" fill="black"/><path d="M14.3494 56.5L36 19L57.6506 56.5H14.3494Z" fill="#D9D9D9" stroke="black"/></svg>',
+        diode_10: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="28" fill="#FF0000"/><rect x="34" y="47" width="4" height="25" fill="#929292"/><rect x="14" y="20" width="44" height="2" fill="black"/><path d="M14.3494 56.5L36 19L57.6506 56.5H14.3494Z" fill="#D9D9D9" stroke="black"/></svg>',
+        or_00: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_53)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#929292"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#929292"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#929292"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#929292"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#929292"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#929292"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#929292"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#929292"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#929292"/><mask id="path-10-inside-1_51_53" fill="white"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z"/></mask><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z" fill="#D9D9D9"/><path d="M14 51L13.0059 50.8918L12.7146 53.5688L14.6826 51.7308L14 51ZM58.7559 51L58.0734 51.7308L60.0414 53.5688L59.7501 50.8918L58.7559 51ZM14.6826 51.7308C20.667 46.1417 28.2047 42.8293 36.378 42.8293V40.8293C27.6415 40.8293 19.629 44.3746 13.3174 50.2692L14.6826 51.7308ZM36.378 42.8293C44.5513 42.8293 52.0889 46.1417 58.0734 51.7308L59.4385 50.2692C53.127 44.3746 45.1144 40.8293 36.378 40.8293V42.8293ZM36.378 18C41.4254 18 46.2244 21.3385 50.0809 27.271C53.9254 33.1849 56.7191 41.5254 57.7618 51.1082L59.7501 50.8918C58.6821 41.0773 55.812 32.4177 51.7578 26.181C47.7156 19.9628 42.3809 16 36.378 16V18ZM14.9941 51.1082C16.0369 41.5254 18.8306 33.185 22.675 27.271C26.5315 21.3385 31.3305 18 36.378 18V16C30.375 16 25.0404 19.9628 20.9982 26.181C16.9439 32.4177 14.0738 41.0773 13.0059 50.8918L14.9941 51.1082Z" fill="black" mask="url(#path-10-inside-1_51_53)"/><path d="M36.4205 31.6364C36.4205 32.5568 36.2543 33.3523 35.9219 34.0227C35.5895 34.6932 35.1335 35.2102 34.554 35.5739C33.9744 35.9375 33.3125 36.1193 32.5682 36.1193C31.8239 36.1193 31.1619 35.9375 30.5824 35.5739C30.0028 35.2102 29.5469 34.6932 29.2145 34.0227C28.8821 33.3523 28.7159 32.5568 28.7159 31.6364C28.7159 30.7159 28.8821 29.9205 29.2145 29.25C29.5469 28.5795 30.0028 28.0625 30.5824 27.6989C31.1619 27.3352 31.8239 27.1534 32.5682 27.1534C33.3125 27.1534 33.9744 27.3352 34.554 27.6989C35.1335 28.0625 35.5895 28.5795 35.9219 29.25C36.2543 29.9205 36.4205 30.7159 36.4205 31.6364ZM35.3977 31.6364C35.3977 30.8807 35.2713 30.2429 35.0185 29.723C34.7685 29.2031 34.429 28.8097 34 28.5426C33.5739 28.2756 33.0966 28.142 32.5682 28.142C32.0398 28.142 31.5611 28.2756 31.1321 28.5426C30.706 28.8097 30.3665 29.2031 30.1136 29.723C29.8636 30.2429 29.7386 30.8807 29.7386 31.6364C29.7386 32.392 29.8636 33.0298 30.1136 33.5497C30.3665 34.0696 30.706 34.4631 31.1321 34.7301C31.5611 34.9972 32.0398 35.1307 32.5682 35.1307C33.0966 35.1307 33.5739 34.9972 34 34.7301C34.429 34.4631 34.7685 34.0696 35.0185 33.5497C35.2713 33.0298 35.3977 32.392 35.3977 31.6364ZM38.1974 36V27.2727H41.1463C41.8281 27.2727 42.3878 27.3892 42.8253 27.6222C43.2628 27.8523 43.5866 28.169 43.7969 28.5724C44.0071 28.9759 44.1122 29.4347 44.1122 29.9489C44.1122 30.4631 44.0071 30.919 43.7969 31.3168C43.5866 31.7145 43.2642 32.027 42.8295 32.2543C42.3949 32.4787 41.8395 32.5909 41.1634 32.5909H38.777V31.6364H41.1293C41.5952 31.6364 41.9702 31.5682 42.2543 31.4318C42.5412 31.2955 42.7486 31.1023 42.8764 30.8523C43.0071 30.5994 43.0724 30.2983 43.0724 29.9489C43.0724 29.5994 43.0071 29.294 42.8764 29.0327C42.7457 28.7713 42.5369 28.5696 42.25 28.4276C41.9631 28.2827 41.5838 28.2102 41.1122 28.2102H39.2543V36H38.1974ZM42.3054 32.0795L44.4531 36H43.2259L41.1122 32.0795H42.3054Z" fill="black"/></g><defs><clipPath id="clip0_51_53"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        or_000: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_53)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#929292"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#929292"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#929292"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#929292"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#929292"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#929292"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#929292"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#929292"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#929292"/><mask id="path-10-inside-1_51_53" fill="white"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z"/></mask><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z" fill="#D9D9D9"/><path d="M14 51L13.0059 50.8918L12.7146 53.5688L14.6826 51.7308L14 51ZM58.7559 51L58.0734 51.7308L60.0414 53.5688L59.7501 50.8918L58.7559 51ZM14.6826 51.7308C20.667 46.1417 28.2047 42.8293 36.378 42.8293V40.8293C27.6415 40.8293 19.629 44.3746 13.3174 50.2692L14.6826 51.7308ZM36.378 42.8293C44.5513 42.8293 52.0889 46.1417 58.0734 51.7308L59.4385 50.2692C53.127 44.3746 45.1144 40.8293 36.378 40.8293V42.8293ZM36.378 18C41.4254 18 46.2244 21.3385 50.0809 27.271C53.9254 33.1849 56.7191 41.5254 57.7618 51.1082L59.7501 50.8918C58.6821 41.0773 55.812 32.4177 51.7578 26.181C47.7156 19.9628 42.3809 16 36.378 16V18ZM14.9941 51.1082C16.0369 41.5254 18.8306 33.185 22.675 27.271C26.5315 21.3385 31.3305 18 36.378 18V16C30.375 16 25.0404 19.9628 20.9982 26.181C16.9439 32.4177 14.0738 41.0773 13.0059 50.8918L14.9941 51.1082Z" fill="black" mask="url(#path-10-inside-1_51_53)"/><path d="M36.4205 31.6364C36.4205 32.5568 36.2543 33.3523 35.9219 34.0227C35.5895 34.6932 35.1335 35.2102 34.554 35.5739C33.9744 35.9375 33.3125 36.1193 32.5682 36.1193C31.8239 36.1193 31.1619 35.9375 30.5824 35.5739C30.0028 35.2102 29.5469 34.6932 29.2145 34.0227C28.8821 33.3523 28.7159 32.5568 28.7159 31.6364C28.7159 30.7159 28.8821 29.9205 29.2145 29.25C29.5469 28.5795 30.0028 28.0625 30.5824 27.6989C31.1619 27.3352 31.8239 27.1534 32.5682 27.1534C33.3125 27.1534 33.9744 27.3352 34.554 27.6989C35.1335 28.0625 35.5895 28.5795 35.9219 29.25C36.2543 29.9205 36.4205 30.7159 36.4205 31.6364ZM35.3977 31.6364C35.3977 30.8807 35.2713 30.2429 35.0185 29.723C34.7685 29.2031 34.429 28.8097 34 28.5426C33.5739 28.2756 33.0966 28.142 32.5682 28.142C32.0398 28.142 31.5611 28.2756 31.1321 28.5426C30.706 28.8097 30.3665 29.2031 30.1136 29.723C29.8636 30.2429 29.7386 30.8807 29.7386 31.6364C29.7386 32.392 29.8636 33.0298 30.1136 33.5497C30.3665 34.0696 30.706 34.4631 31.1321 34.7301C31.5611 34.9972 32.0398 35.1307 32.5682 35.1307C33.0966 35.1307 33.5739 34.9972 34 34.7301C34.429 34.4631 34.7685 34.0696 35.0185 33.5497C35.2713 33.0298 35.3977 32.392 35.3977 31.6364ZM38.1974 36V27.2727H41.1463C41.8281 27.2727 42.3878 27.3892 42.8253 27.6222C43.2628 27.8523 43.5866 28.169 43.7969 28.5724C44.0071 28.9759 44.1122 29.4347 44.1122 29.9489C44.1122 30.4631 44.0071 30.919 43.7969 31.3168C43.5866 31.7145 43.2642 32.027 42.8295 32.2543C42.3949 32.4787 41.8395 32.5909 41.1634 32.5909H38.777V31.6364H41.1293C41.5952 31.6364 41.9702 31.5682 42.2543 31.4318C42.5412 31.2955 42.7486 31.1023 42.8764 30.8523C43.0071 30.5994 43.0724 30.2983 43.0724 29.9489C43.0724 29.5994 43.0071 29.294 42.8764 29.0327C42.7457 28.7713 42.5369 28.5696 42.25 28.4276C41.9631 28.2827 41.5838 28.2102 41.1122 28.2102H39.2543V36H38.1974ZM42.3054 32.0795L44.4531 36H43.2259L41.1122 32.0795H42.3054Z" fill="black"/></g><defs><clipPath id="clip0_51_53"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        or_01: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_83)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#929292"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#929292"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#FF0000"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#FF0000"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#FF0000"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#929292"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#FF0000"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#FF0000"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#929292"/><mask id="path-10-inside-1_51_83" fill="white"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z"/></mask><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z" fill="#D9D9D9"/><path d="M14 51L13.0059 50.8918L12.7146 53.5688L14.6826 51.7308L14 51ZM58.7559 51L58.0734 51.7308L60.0414 53.5688L59.7501 50.8918L58.7559 51ZM14.6826 51.7308C20.667 46.1417 28.2047 42.8293 36.378 42.8293V40.8293C27.6415 40.8293 19.629 44.3746 13.3174 50.2692L14.6826 51.7308ZM36.378 42.8293C44.5513 42.8293 52.0889 46.1417 58.0734 51.7308L59.4385 50.2692C53.127 44.3746 45.1144 40.8293 36.378 40.8293V42.8293ZM36.378 18C41.4254 18 46.2244 21.3385 50.0809 27.271C53.9254 33.1849 56.7191 41.5254 57.7618 51.1082L59.7501 50.8918C58.6821 41.0773 55.812 32.4177 51.7578 26.181C47.7156 19.9628 42.3809 16 36.378 16V18ZM14.9941 51.1082C16.0369 41.5254 18.8306 33.185 22.675 27.271C26.5315 21.3385 31.3305 18 36.378 18V16C30.375 16 25.0404 19.9628 20.9982 26.181C16.9439 32.4177 14.0738 41.0773 13.0059 50.8918L14.9941 51.1082Z" fill="black"/><path d="M36.4205 31.6364C36.4205 32.5568 36.2543 33.3523 35.9219 34.0227C35.5895 34.6932 35.1335 35.2102 34.554 35.5739C33.9744 35.9375 33.3125 36.1193 32.5682 36.1193C31.8239 36.1193 31.1619 35.9375 30.5824 35.5739C30.0028 35.2102 29.5469 34.6932 29.2145 34.0227C28.8821 33.3523 28.7159 32.5568 28.7159 31.6364C28.7159 30.7159 28.8821 29.9205 29.2145 29.25C29.5469 28.5795 30.0028 28.0625 30.5824 27.6989C31.1619 27.3352 31.8239 27.1534 32.5682 27.1534C33.3125 27.1534 33.9744 27.3352 34.554 27.6989C35.1335 28.0625 35.5895 28.5795 35.9219 29.25C36.2543 29.9205 36.4205 30.7159 36.4205 31.6364ZM35.3977 31.6364C35.3977 30.8807 35.2713 30.2429 35.0185 29.723C34.7685 29.2031 34.429 28.8097 34 28.5426C33.5739 28.2756 33.0966 28.142 32.5682 28.142C32.0398 28.142 31.5611 28.2756 31.1321 28.5426C30.706 28.8097 30.3665 29.2031 30.1136 29.723C29.8636 30.2429 29.7386 30.8807 29.7386 31.6364C29.7386 32.392 29.8636 33.0298 30.1136 33.5497C30.3665 34.0696 30.706 34.4631 31.1321 34.7301C31.5611 34.9972 32.0398 35.1307 32.5682 35.1307C33.0966 35.1307 33.5739 34.9972 34 34.7301C34.429 34.4631 34.7685 34.0696 35.0185 33.5497C35.2713 33.0298 35.3977 32.392 35.3977 31.6364ZM38.1974 36V27.2727H41.1463C41.8281 27.2727 42.3878 27.3892 42.8253 27.6222C43.2628 27.8523 43.5866 28.169 43.7969 28.5724C44.0071 28.9759 44.1122 29.4347 44.1122 29.9489C44.1122 30.4631 44.0071 30.919 43.7969 31.3168C43.5866 31.7145 43.2642 32.027 42.8295 32.2543C42.3949 32.4787 41.8395 32.5909 41.1634 32.5909H38.777V31.6364H41.1293C41.5952 31.6364 41.9702 31.5682 42.2543 31.4318C42.5412 31.2955 42.7486 31.1023 42.8764 30.8523C43.0071 30.5994 43.0724 30.2983 43.0724 29.9489C43.0724 29.5994 43.0071 29.294 42.8764 29.0327C42.7457 28.7713 42.5369 28.5696 42.25 28.4276C41.9631 28.2827 41.5838 28.2102 41.1122 28.2102H39.2543V36H38.1974ZM42.3054 32.0795L44.4531 36H43.2259L41.1122 32.0795H42.3054Z" fill="black"/></g><defs><clipPath id="clip0_51_83"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        or_010: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_167_31)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#929292"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#929292"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#FF0000"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#FF0000"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#929292"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#929292"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#FF0000"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#FF0000"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#929292"/><mask id="path-10-inside-1_167_31" fill="white"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z"/></mask><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z" fill="#D9D9D9"/><path d="M14 51L13.0059 50.8918L12.7146 53.5688L14.6826 51.7308L14 51ZM58.7559 51L58.0734 51.7308L60.0414 53.5688L59.7501 50.8918L58.7559 51ZM14.6826 51.7308C20.667 46.1417 28.2047 42.8293 36.378 42.8293V40.8293C27.6415 40.8293 19.629 44.3746 13.3174 50.2692L14.6826 51.7308ZM36.378 42.8293C44.5513 42.8293 52.0889 46.1417 58.0734 51.7308L59.4385 50.2692C53.127 44.3746 45.1144 40.8293 36.378 40.8293V42.8293ZM36.378 18C41.4254 18 46.2244 21.3385 50.0809 27.271C53.9254 33.1849 56.7191 41.5253 57.7618 51.1082L59.7501 50.8918C58.6821 41.0773 55.812 32.4177 51.7578 26.181C47.7156 19.9628 42.3809 16 36.378 16V18ZM14.9941 51.1082C16.0369 41.5254 18.8306 33.185 22.675 27.271C26.5315 21.3385 31.3305 18 36.378 18V16C30.375 16 25.0404 19.9628 20.9982 26.181C16.9439 32.4177 14.0738 41.0773 13.0059 50.8918L14.9941 51.1082Z" fill="black" mask="url(#path-10-inside-1_167_31)"/><path d="M36.4205 31.6364C36.4205 32.5568 36.2543 33.3523 35.9219 34.0227C35.5895 34.6932 35.1335 35.2102 34.554 35.5739C33.9744 35.9375 33.3125 36.1193 32.5682 36.1193C31.8239 36.1193 31.1619 35.9375 30.5824 35.5739C30.0028 35.2102 29.5469 34.6932 29.2145 34.0227C28.8821 33.3523 28.7159 32.5568 28.7159 31.6364C28.7159 30.7159 28.8821 29.9205 29.2145 29.25C29.5469 28.5795 30.0028 28.0625 30.5824 27.6989C31.1619 27.3352 31.8239 27.1534 32.5682 27.1534C33.3125 27.1534 33.9744 27.3352 34.554 27.6989C35.1335 28.0625 35.5895 28.5795 35.9219 29.25C36.2543 29.9205 36.4205 30.7159 36.4205 31.6364ZM35.3977 31.6364C35.3977 30.8807 35.2713 30.2429 35.0185 29.723C34.7685 29.2031 34.429 28.8097 34 28.5426C33.5739 28.2756 33.0966 28.142 32.5682 28.142C32.0398 28.142 31.5611 28.2756 31.1321 28.5426C30.706 28.8097 30.3665 29.2031 30.1136 29.723C29.8636 30.2429 29.7386 30.8807 29.7386 31.6364C29.7386 32.392 29.8636 33.0298 30.1136 33.5497C30.3665 34.0696 30.706 34.4631 31.1321 34.7301C31.5611 34.9972 32.0398 35.1307 32.5682 35.1307C33.0966 35.1307 33.5739 34.9972 34 34.7301C34.429 34.4631 34.7685 34.0696 35.0185 33.5497C35.2713 33.0298 35.3977 32.392 35.3977 31.6364ZM38.1974 36V27.2727H41.1463C41.8281 27.2727 42.3878 27.3892 42.8253 27.6222C43.2628 27.8523 43.5866 28.169 43.7969 28.5724C44.0071 28.9759 44.1122 29.4347 44.1122 29.9489C44.1122 30.4631 44.0071 30.919 43.7969 31.3168C43.5866 31.7145 43.2642 32.027 42.8295 32.2543C42.3949 32.4787 41.8395 32.5909 41.1634 32.5909H38.777V31.6364H41.1293C41.5952 31.6364 41.9702 31.5682 42.2543 31.4318C42.5412 31.2955 42.7486 31.1023 42.8764 30.8523C43.0071 30.5994 43.0724 30.2983 43.0724 29.9489C43.0724 29.5994 43.0071 29.294 42.8764 29.0327C42.7457 28.7713 42.5369 28.5696 42.25 28.4276C41.9631 28.2827 41.5838 28.2102 41.1122 28.2102H39.2543V36H38.1974ZM42.3054 32.0795L44.4531 36H43.2259L41.1122 32.0795H42.3054Z" fill="black"/></g><defs><clipPath id="clip0_167_31"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        or_10: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_98)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#FF0000"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#FF0000"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#929292"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#929292"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#FF0000"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#FF0000"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#929292"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#929292"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#FF0000"/><mask id="path-10-inside-1_51_98" fill="white"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z"/></mask><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z" fill="#D9D9D9"/><path d="M14 51L13.0059 50.8918L12.7146 53.5688L14.6826 51.7308L14 51ZM58.7559 51L58.0734 51.7308L60.0414 53.5688L59.7501 50.8918L58.7559 51ZM14.6826 51.7308C20.667 46.1417 28.2047 42.8293 36.378 42.8293V40.8293C27.6415 40.8293 19.629 44.3746 13.3174 50.2692L14.6826 51.7308ZM36.378 42.8293C44.5513 42.8293 52.0889 46.1417 58.0734 51.7308L59.4385 50.2692C53.127 44.3746 45.1144 40.8293 36.378 40.8293V42.8293ZM36.378 18C41.4254 18 46.2244 21.3385 50.0809 27.271C53.9254 33.1849 56.7191 41.5254 57.7618 51.1082L59.7501 50.8918C58.6821 41.0773 55.812 32.4177 51.7578 26.181C47.7156 19.9628 42.3809 16 36.378 16V18ZM14.9941 51.1082C16.0369 41.5254 18.8306 33.185 22.675 27.271C26.5315 21.3385 31.3305 18 36.378 18V16C30.375 16 25.0404 19.9628 20.9982 26.181C16.9439 32.4177 14.0738 41.0773 13.0059 50.8918L14.9941 51.1082Z" fill="black"/><path d="M36.4205 31.6364C36.4205 32.5568 36.2543 33.3523 35.9219 34.0227C35.5895 34.6932 35.1335 35.2102 34.554 35.5739C33.9744 35.9375 33.3125 36.1193 32.5682 36.1193C31.8239 36.1193 31.1619 35.9375 30.5824 35.5739C30.0028 35.2102 29.5469 34.6932 29.2145 34.0227C28.8821 33.3523 28.7159 32.5568 28.7159 31.6364C28.7159 30.7159 28.8821 29.9205 29.2145 29.25C29.5469 28.5795 30.0028 28.0625 30.5824 27.6989C31.1619 27.3352 31.8239 27.1534 32.5682 27.1534C33.3125 27.1534 33.9744 27.3352 34.554 27.6989C35.1335 28.0625 35.5895 28.5795 35.9219 29.25C36.2543 29.9205 36.4205 30.7159 36.4205 31.6364ZM35.3977 31.6364C35.3977 30.8807 35.2713 30.2429 35.0185 29.723C34.7685 29.2031 34.429 28.8097 34 28.5426C33.5739 28.2756 33.0966 28.142 32.5682 28.142C32.0398 28.142 31.5611 28.2756 31.1321 28.5426C30.706 28.8097 30.3665 29.2031 30.1136 29.723C29.8636 30.2429 29.7386 30.8807 29.7386 31.6364C29.7386 32.392 29.8636 33.0298 30.1136 33.5497C30.3665 34.0696 30.706 34.4631 31.1321 34.7301C31.5611 34.9972 32.0398 35.1307 32.5682 35.1307C33.0966 35.1307 33.5739 34.9972 34 34.7301C34.429 34.4631 34.7685 34.0696 35.0185 33.5497C35.2713 33.0298 35.3977 32.392 35.3977 31.6364ZM38.1974 36V27.2727H41.1463C41.8281 27.2727 42.3878 27.3892 42.8253 27.6222C43.2628 27.8523 43.5866 28.169 43.7969 28.5724C44.0071 28.9759 44.1122 29.4347 44.1122 29.9489C44.1122 30.4631 44.0071 30.919 43.7969 31.3168C43.5866 31.7145 43.2642 32.027 42.8295 32.2543C42.3949 32.4787 41.8395 32.5909 41.1634 32.5909H38.777V31.6364H41.1293C41.5952 31.6364 41.9702 31.5682 42.2543 31.4318C42.5412 31.2955 42.7486 31.1023 42.8764 30.8523C43.0071 30.5994 43.0724 30.2983 43.0724 29.9489C43.0724 29.5994 43.0071 29.294 42.8764 29.0327C42.7457 28.7713 42.5369 28.5696 42.25 28.4276C41.9631 28.2827 41.5838 28.2102 41.1122 28.2102H39.2543V36H38.1974ZM42.3054 32.0795L44.4531 36H43.2259L41.1122 32.0795H42.3054Z" fill="black"/></g><defs><clipPath id="clip0_51_98"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        or_100: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_167_16)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#FF0000"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#FF0000"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#929292"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#929292"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#929292"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#FF0000"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#929292"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#929292"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#FF0000"/><mask id="path-10-inside-1_167_16" fill="white"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z"/></mask><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z" fill="#D9D9D9"/><path d="M14 51L13.0059 50.8918L12.7146 53.5688L14.6826 51.7308L14 51ZM58.7559 51L58.0734 51.7308L60.0414 53.5688L59.7501 50.8918L58.7559 51ZM14.6826 51.7308C20.667 46.1417 28.2047 42.8293 36.378 42.8293V40.8293C27.6415 40.8293 19.629 44.3746 13.3174 50.2692L14.6826 51.7308ZM36.378 42.8293C44.5513 42.8293 52.0889 46.1417 58.0734 51.7308L59.4385 50.2692C53.127 44.3746 45.1144 40.8293 36.378 40.8293V42.8293ZM36.378 18C41.4254 18 46.2244 21.3385 50.0809 27.271C53.9254 33.1849 56.7191 41.5253 57.7618 51.1082L59.7501 50.8918C58.6821 41.0773 55.812 32.4177 51.7578 26.181C47.7156 19.9628 42.3809 16 36.378 16V18ZM14.9941 51.1082C16.0369 41.5254 18.8306 33.185 22.675 27.271C26.5315 21.3385 31.3305 18 36.378 18V16C30.375 16 25.0404 19.9628 20.9982 26.181C16.9439 32.4177 14.0738 41.0773 13.0059 50.8918L14.9941 51.1082Z" fill="black" mask="url(#path-10-inside-1_167_16)"/><path d="M36.4205 31.6364C36.4205 32.5568 36.2543 33.3523 35.9219 34.0227C35.5895 34.6932 35.1335 35.2102 34.554 35.5739C33.9744 35.9375 33.3125 36.1193 32.5682 36.1193C31.8239 36.1193 31.1619 35.9375 30.5824 35.5739C30.0028 35.2102 29.5469 34.6932 29.2145 34.0227C28.8821 33.3523 28.7159 32.5568 28.7159 31.6364C28.7159 30.7159 28.8821 29.9205 29.2145 29.25C29.5469 28.5795 30.0028 28.0625 30.5824 27.6989C31.1619 27.3352 31.8239 27.1534 32.5682 27.1534C33.3125 27.1534 33.9744 27.3352 34.554 27.6989C35.1335 28.0625 35.5895 28.5795 35.9219 29.25C36.2543 29.9205 36.4205 30.7159 36.4205 31.6364ZM35.3977 31.6364C35.3977 30.8807 35.2713 30.2429 35.0185 29.723C34.7685 29.2031 34.429 28.8097 34 28.5426C33.5739 28.2756 33.0966 28.142 32.5682 28.142C32.0398 28.142 31.5611 28.2756 31.1321 28.5426C30.706 28.8097 30.3665 29.2031 30.1136 29.723C29.8636 30.2429 29.7386 30.8807 29.7386 31.6364C29.7386 32.392 29.8636 33.0298 30.1136 33.5497C30.3665 34.0696 30.706 34.4631 31.1321 34.7301C31.5611 34.9972 32.0398 35.1307 32.5682 35.1307C33.0966 35.1307 33.5739 34.9972 34 34.7301C34.429 34.4631 34.7685 34.0696 35.0185 33.5497C35.2713 33.0298 35.3977 32.392 35.3977 31.6364ZM38.1974 36V27.2727H41.1463C41.8281 27.2727 42.3878 27.3892 42.8253 27.6222C43.2628 27.8523 43.5866 28.169 43.7969 28.5724C44.0071 28.9759 44.1122 29.4347 44.1122 29.9489C44.1122 30.4631 44.0071 30.919 43.7969 31.3168C43.5866 31.7145 43.2642 32.027 42.8295 32.2543C42.3949 32.4787 41.8395 32.5909 41.1634 32.5909H38.777V31.6364H41.1293C41.5952 31.6364 41.9702 31.5682 42.2543 31.4318C42.5412 31.2955 42.7486 31.1023 42.8764 30.8523C43.0071 30.5994 43.0724 30.2983 43.0724 29.9489C43.0724 29.5994 43.0071 29.294 42.8764 29.0327C42.7457 28.7713 42.5369 28.5696 42.25 28.4276C41.9631 28.2827 41.5838 28.2102 41.1122 28.2102H39.2543V36H38.1974ZM42.3054 32.0795L44.4531 36H43.2259L41.1122 32.0795H42.3054Z" fill="black"/></g><defs><clipPath id="clip0_167_16"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        or_11: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_68)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#FF0000"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#FF0000"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#FF0000"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#FF0000"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#FF0000"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#FF0000"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#FF0000"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#FF0000"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#FF0000"/><mask id="path-10-inside-1_51_68" fill="white"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z"/></mask><path fill-rule="evenodd" clip-rule="evenodd" d="M14 51C20.148 45.2582 27.9231 41.8293 36.378 41.8293C44.8329 41.8293 52.6079 45.2582 58.7559 51C56.6452 31.6026 47.4284 17 36.378 17C25.3276 17 16.1107 31.6026 14 51Z" fill="#D9D9D9"/><path d="M14 51L13.0059 50.8918L12.7146 53.5688L14.6826 51.7308L14 51ZM58.7559 51L58.0734 51.7308L60.0414 53.5688L59.7501 50.8918L58.7559 51ZM14.6826 51.7308C20.667 46.1417 28.2047 42.8293 36.378 42.8293V40.8293C27.6415 40.8293 19.629 44.3746 13.3174 50.2692L14.6826 51.7308ZM36.378 42.8293C44.5513 42.8293 52.0889 46.1417 58.0734 51.7308L59.4385 50.2692C53.127 44.3746 45.1144 40.8293 36.378 40.8293V42.8293ZM36.378 18C41.4254 18 46.2244 21.3385 50.0809 27.271C53.9254 33.1849 56.7191 41.5254 57.7618 51.1082L59.7501 50.8918C58.6821 41.0773 55.812 32.4177 51.7578 26.181C47.7156 19.9628 42.3809 16 36.378 16V18ZM14.9941 51.1082C16.0369 41.5254 18.8306 33.185 22.675 27.271C26.5315 21.3385 31.3305 18 36.378 18V16C30.375 16 25.0404 19.9628 20.9982 26.181C16.9439 32.4177 14.0738 41.0773 13.0059 50.8918L14.9941 51.1082Z" fill="black"/><path d="M36.4205 31.6364C36.4205 32.5568 36.2543 33.3523 35.9219 34.0227C35.5895 34.6932 35.1335 35.2102 34.554 35.5739C33.9744 35.9375 33.3125 36.1193 32.5682 36.1193C31.8239 36.1193 31.1619 35.9375 30.5824 35.5739C30.0028 35.2102 29.5469 34.6932 29.2145 34.0227C28.8821 33.3523 28.7159 32.5568 28.7159 31.6364C28.7159 30.7159 28.8821 29.9205 29.2145 29.25C29.5469 28.5795 30.0028 28.0625 30.5824 27.6989C31.1619 27.3352 31.8239 27.1534 32.5682 27.1534C33.3125 27.1534 33.9744 27.3352 34.554 27.6989C35.1335 28.0625 35.5895 28.5795 35.9219 29.25C36.2543 29.9205 36.4205 30.7159 36.4205 31.6364ZM35.3977 31.6364C35.3977 30.8807 35.2713 30.2429 35.0185 29.723C34.7685 29.2031 34.429 28.8097 34 28.5426C33.5739 28.2756 33.0966 28.142 32.5682 28.142C32.0398 28.142 31.5611 28.2756 31.1321 28.5426C30.706 28.8097 30.3665 29.2031 30.1136 29.723C29.8636 30.2429 29.7386 30.8807 29.7386 31.6364C29.7386 32.392 29.8636 33.0298 30.1136 33.5497C30.3665 34.0696 30.706 34.4631 31.1321 34.7301C31.5611 34.9972 32.0398 35.1307 32.5682 35.1307C33.0966 35.1307 33.5739 34.9972 34 34.7301C34.429 34.4631 34.7685 34.0696 35.0185 33.5497C35.2713 33.0298 35.3977 32.392 35.3977 31.6364ZM38.1974 36V27.2727H41.1463C41.8281 27.2727 42.3878 27.3892 42.8253 27.6222C43.2628 27.8523 43.5866 28.169 43.7969 28.5724C44.0071 28.9759 44.1122 29.4347 44.1122 29.9489C44.1122 30.4631 44.0071 30.919 43.7969 31.3168C43.5866 31.7145 43.2642 32.027 42.8295 32.2543C42.3949 32.4787 41.8395 32.5909 41.1634 32.5909H38.777V31.6364H41.1293C41.5952 31.6364 41.9702 31.5682 42.2543 31.4318C42.5412 31.2955 42.7486 31.1023 42.8764 30.8523C43.0071 30.5994 43.0724 30.2983 43.0724 29.9489C43.0724 29.5994 43.0071 29.294 42.8764 29.0327C42.7457 28.7713 42.5369 28.5696 42.25 28.4276C41.9631 28.2827 41.5838 28.2102 41.1122 28.2102H39.2543V36H38.1974ZM42.3054 32.0795L44.4531 36H43.2259L41.1122 32.0795H42.3054Z" fill="black"/></g><defs><clipPath id="clip0_51_68"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        and_00: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_113)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#929292"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#929292"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#929292"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#929292"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#929292"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#929292"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#929292"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#929292"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#929292"/><path d="M15.5 35.5C15.5 23.902 24.902 14.5 36.5 14.5C48.098 14.5 57.5 23.902 57.5 35.5V52.5H15.5V35.5Z" fill="#D9D9D9" stroke="black"/><path d="M24.4148 46H23.3068L26.5114 37.2727H27.6023L30.8068 46H29.6989L27.0909 38.6534H27.0227L24.4148 46ZM24.8239 42.5909H29.2898V43.5284H24.8239V42.5909ZM39.0866 37.2727V46H38.0639L33.3082 39.1477H33.223V46H32.1662V37.2727H33.1889L37.9616 44.142H38.0469V37.2727H39.0866ZM43.8945 46H41.2013V37.2727H44.0138C44.8604 37.2727 45.5849 37.4474 46.1871 37.7969C46.7894 38.1435 47.2511 38.642 47.5721 39.2926C47.8931 39.9403 48.0536 40.7159 48.0536 41.6193C48.0536 42.5284 47.8917 43.3111 47.5678 43.9673C47.244 44.6207 46.7724 45.1236 46.1531 45.4759C45.5337 45.8253 44.7809 46 43.8945 46ZM42.2582 45.0625H43.8263C44.5479 45.0625 45.146 44.9233 45.6204 44.6449C46.0948 44.3665 46.4485 43.9702 46.6815 43.456C46.9144 42.9418 47.0309 42.3295 47.0309 41.6193C47.0309 40.9148 46.9158 40.3082 46.6857 39.7997C46.4556 39.2884 46.1119 38.8963 45.6545 38.6236C45.1971 38.348 44.6275 38.2102 43.9457 38.2102H42.2582V45.0625Z" fill="black"/></g><defs><clipPath id="clip0_51_113"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        and_01: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_152)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#929292"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#929292"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#FF0000"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#FF0000"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#929292"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#929292"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#FF0000"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#FF0000"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#929292"/><path d="M15.5 35.5C15.5 23.902 24.902 14.5 36.5 14.5C48.098 14.5 57.5 23.902 57.5 35.5V52.5H15.5V35.5Z" fill="#D9D9D9" stroke="black"/><path d="M24.4148 46H23.3068L26.5114 37.2727H27.6023L30.8068 46H29.6989L27.0909 38.6534H27.0227L24.4148 46ZM24.8239 42.5909H29.2898V43.5284H24.8239V42.5909ZM39.0866 37.2727V46H38.0639L33.3082 39.1477H33.223V46H32.1662V37.2727H33.1889L37.9616 44.142H38.0469V37.2727H39.0866ZM43.8945 46H41.2013V37.2727H44.0138C44.8604 37.2727 45.5849 37.4474 46.1871 37.7969C46.7894 38.1435 47.2511 38.642 47.5721 39.2926C47.8931 39.9403 48.0536 40.7159 48.0536 41.6193C48.0536 42.5284 47.8917 43.3111 47.5678 43.9673C47.244 44.6207 46.7724 45.1236 46.1531 45.4759C45.5337 45.8253 44.7809 46 43.8945 46ZM42.2582 45.0625H43.8263C44.5479 45.0625 45.146 44.9233 45.6204 44.6449C46.0948 44.3665 46.4485 43.9702 46.6815 43.456C46.9144 42.9418 47.0309 42.3295 47.0309 41.6193C47.0309 40.9148 46.9158 40.3082 46.6857 39.7997C46.4556 39.2884 46.1119 38.8963 45.6545 38.6236C45.1971 38.348 44.6275 38.2102 43.9457 38.2102H42.2582V45.0625Z" fill="black"/></g><defs><clipPath id="clip0_51_152"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        and_10: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_139)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#FF0000"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#FF0000"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#929292"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#929292"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#929292"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#FF0000"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#929292"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#929292"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#FF0000"/><path d="M15.5 35.5C15.5 23.902 24.902 14.5 36.5 14.5C48.098 14.5 57.5 23.902 57.5 35.5V52.5H15.5V35.5Z" fill="#D9D9D9" stroke="black"/><path d="M24.4148 46H23.3068L26.5114 37.2727H27.6023L30.8068 46H29.6989L27.0909 38.6534H27.0227L24.4148 46ZM24.8239 42.5909H29.2898V43.5284H24.8239V42.5909ZM39.0866 37.2727V46H38.0639L33.3082 39.1477H33.223V46H32.1662V37.2727H33.1889L37.9616 44.142H38.0469V37.2727H39.0866ZM43.8945 46H41.2013V37.2727H44.0138C44.8604 37.2727 45.5849 37.4474 46.1871 37.7969C46.7894 38.1435 47.2511 38.642 47.5721 39.2926C47.8931 39.9403 48.0536 40.7159 48.0536 41.6193C48.0536 42.5284 47.8917 43.3111 47.5678 43.9673C47.244 44.6207 46.7724 45.1236 46.1531 45.4759C45.5337 45.8253 44.7809 46 43.8945 46ZM42.2582 45.0625H43.8263C44.5479 45.0625 45.146 44.9233 45.6204 44.6449C46.0948 44.3665 46.4485 43.9702 46.6815 43.456C46.9144 42.9418 47.0309 42.3295 47.0309 41.6193C47.0309 40.9148 46.9158 40.3082 46.6857 39.7997C46.4556 39.2884 46.1119 38.8963 45.6545 38.6236C45.1971 38.348 44.6275 38.2102 43.9457 38.2102H42.2582V45.0625Z" fill="black"/></g><defs><clipPath id="clip0_51_139"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        and_11: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_51_126)"><rect y="38" width="4" height="8" transform="rotate(-90 0 38)" fill="#FF0000"/><rect x="9" y="68" width="4" height="12" transform="rotate(-90 9 68)" fill="#FF0000"/><rect x="53" y="68" width="4" height="12" transform="rotate(-90 53 68)" fill="#FF0000"/><rect x="63" y="38" width="4" height="9" transform="rotate(-90 63 38)" fill="#FF0000"/><rect x="38" y="34" width="4" height="34" transform="rotate(180 38 34)" fill="#FF0000"/><rect x="22" y="68" width="4" height="23" transform="rotate(180 22 68)" fill="#FF0000"/><rect x="55" y="68" width="4" height="23" transform="rotate(180 55 68)" fill="#FF0000"/><rect x="67" y="68" width="4" height="34" transform="rotate(180 67 68)" fill="#FF0000"/><rect x="10" y="68" width="4" height="34" transform="rotate(180 10 68)" fill="#FF0000"/><path d="M15.5 35.5C15.5 23.902 24.902 14.5 36.5 14.5C48.098 14.5 57.5 23.902 57.5 35.5V52.5H15.5V35.5Z" fill="#D9D9D9" stroke="black"/><path d="M24.4148 46H23.3068L26.5114 37.2727H27.6023L30.8068 46H29.6989L27.0909 38.6534H27.0227L24.4148 46ZM24.8239 42.5909H29.2898V43.5284H24.8239V42.5909ZM39.0866 37.2727V46H38.0639L33.3082 39.1477H33.223V46H32.1662V37.2727H33.1889L37.9616 44.142H38.0469V37.2727H39.0866ZM43.8945 46H41.2013V37.2727H44.0138C44.8604 37.2727 45.5849 37.4474 46.1871 37.7969C46.7894 38.1435 47.2511 38.642 47.5721 39.2926C47.8931 39.9403 48.0536 40.7159 48.0536 41.6193C48.0536 42.5284 47.8917 43.3111 47.5678 43.9673C47.244 44.6207 46.7724 45.1236 46.1531 45.4759C45.5337 45.8253 44.7809 46 43.8945 46ZM42.2582 45.0625H43.8263C44.5479 45.0625 45.146 44.9233 45.6204 44.6449C46.0948 44.3665 46.4485 43.9702 46.6815 43.456C46.9144 42.9418 47.0309 42.3295 47.0309 41.6193C47.0309 40.9148 46.9158 40.3082 46.6857 39.7997C46.4556 39.2884 46.1119 38.8963 45.6545 38.6236C45.1971 38.348 44.6275 38.2102 43.9457 38.2102H42.2582V45.0625Z" fill="black"/></g><defs><clipPath id="clip0_51_126"><rect width="72" height="72" fill="white" transform="translate(0 72) rotate(-90)"/></clipPath></defs></svg>',
+        not_00: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="28" fill="#929292"/><rect x="34" y="47" width="4" height="25" fill="#929292"/><path d="M14.3494 56.5L36 19L57.6506 56.5H14.3494Z" fill="#D9D9D9" stroke="black"/><circle cx="36" cy="19" r="3.5" fill="#D9D9D9" stroke="black"/><path d="M30.9773 44.2727V53H29.9545L25.1989 46.1477H25.1136V53H24.0568V44.2727H25.0795L29.8523 51.142H29.9375V44.2727H30.9773ZM40.4556 48.6364C40.4556 49.5568 40.2894 50.3523 39.957 51.0227C39.6246 51.6932 39.1687 52.2102 38.5891 52.5739C38.0096 52.9375 37.3477 53.1193 36.6033 53.1193C35.859 53.1193 35.1971 52.9375 34.6175 52.5739C34.038 52.2102 33.582 51.6932 33.2496 51.0227C32.9173 50.3523 32.7511 49.5568 32.7511 48.6364C32.7511 47.7159 32.9173 46.9205 33.2496 46.25C33.582 45.5795 34.038 45.0625 34.6175 44.6989C35.1971 44.3352 35.859 44.1534 36.6033 44.1534C37.3477 44.1534 38.0096 44.3352 38.5891 44.6989C39.1687 45.0625 39.6246 45.5795 39.957 46.25C40.2894 46.9205 40.4556 47.7159 40.4556 48.6364ZM39.4329 48.6364C39.4329 47.8807 39.3065 47.2429 39.0536 46.723C38.8036 46.2031 38.4641 45.8097 38.0352 45.5426C37.609 45.2756 37.1317 45.142 36.6033 45.142C36.0749 45.142 35.5962 45.2756 35.1673 45.5426C34.7411 45.8097 34.4016 46.2031 34.1488 46.723C33.8988 47.2429 33.7738 47.8807 33.7738 48.6364C33.7738 49.392 33.8988 50.0298 34.1488 50.5497C34.4016 51.0696 34.7411 51.4631 35.1673 51.7301C35.5962 51.9972 36.0749 52.1307 36.6033 52.1307C37.1317 52.1307 37.609 51.9972 38.0352 51.7301C38.4641 51.4631 38.8036 51.0696 39.0536 50.5497C39.3065 50.0298 39.4329 49.392 39.4329 48.6364ZM41.392 45.2102V44.2727H47.9375V45.2102H45.1932V53H44.1364V45.2102H41.392Z" fill="black"/></svg>',
+        not_01: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="28" fill="#FF0000"/><rect x="34" y="47" width="4" height="25" fill="#929292"/><path d="M14.3494 56.5L36 19L57.6506 56.5H14.3494Z" fill="#D9D9D9" stroke="black"/><circle cx="36" cy="19" r="3.5" fill="#D9D9D9" stroke="black"/><path d="M30.9773 44.2727V53H29.9545L25.1989 46.1477H25.1136V53H24.0568V44.2727H25.0795L29.8523 51.142H29.9375V44.2727H30.9773ZM40.4556 48.6364C40.4556 49.5568 40.2894 50.3523 39.957 51.0227C39.6246 51.6932 39.1687 52.2102 38.5891 52.5739C38.0096 52.9375 37.3477 53.1193 36.6033 53.1193C35.859 53.1193 35.1971 52.9375 34.6175 52.5739C34.038 52.2102 33.582 51.6932 33.2496 51.0227C32.9173 50.3523 32.7511 49.5568 32.7511 48.6364C32.7511 47.7159 32.9173 46.9205 33.2496 46.25C33.582 45.5795 34.038 45.0625 34.6175 44.6989C35.1971 44.3352 35.859 44.1534 36.6033 44.1534C37.3477 44.1534 38.0096 44.3352 38.5891 44.6989C39.1687 45.0625 39.6246 45.5795 39.957 46.25C40.2894 46.9205 40.4556 47.7159 40.4556 48.6364ZM39.4329 48.6364C39.4329 47.8807 39.3065 47.2429 39.0536 46.723C38.8036 46.2031 38.4641 45.8097 38.0352 45.5426C37.609 45.2756 37.1317 45.142 36.6033 45.142C36.0749 45.142 35.5962 45.2756 35.1673 45.5426C34.7411 45.8097 34.4016 46.2031 34.1488 46.723C33.8988 47.2429 33.7738 47.8807 33.7738 48.6364C33.7738 49.392 33.8988 50.0298 34.1488 50.5497C34.4016 51.0696 34.7411 51.4631 35.1673 51.7301C35.5962 51.9972 36.0749 52.1307 36.6033 52.1307C37.1317 52.1307 37.609 51.9972 38.0352 51.7301C38.4641 51.4631 38.8036 51.0696 39.0536 50.5497C39.3065 50.0298 39.4329 49.392 39.4329 48.6364ZM41.392 45.2102V44.2727H47.9375V45.2102H45.1932V53H44.1364V45.2102H41.392Z" fill="black"/></svg>',
+        not_10: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="28" fill="#929292"/><rect x="34" y="47" width="4" height="25" fill="#FF0000"/><path d="M14.3494 56.5L36 19L57.6506 56.5H14.3494Z" fill="#D9D9D9" stroke="black"/><circle cx="36" cy="19" r="3.5" fill="#D9D9D9" stroke="black"/><path d="M30.9773 44.2727V53H29.9545L25.1989 46.1477H25.1136V53H24.0568V44.2727H25.0795L29.8523 51.142H29.9375V44.2727H30.9773ZM40.4556 48.6364C40.4556 49.5568 40.2894 50.3523 39.957 51.0227C39.6246 51.6932 39.1687 52.2102 38.5891 52.5739C38.0096 52.9375 37.3477 53.1193 36.6033 53.1193C35.859 53.1193 35.1971 52.9375 34.6175 52.5739C34.038 52.2102 33.582 51.6932 33.2496 51.0227C32.9173 50.3523 32.7511 49.5568 32.7511 48.6364C32.7511 47.7159 32.9173 46.9205 33.2496 46.25C33.582 45.5795 34.038 45.0625 34.6175 44.6989C35.1971 44.3352 35.859 44.1534 36.6033 44.1534C37.3477 44.1534 38.0096 44.3352 38.5891 44.6989C39.1687 45.0625 39.6246 45.5795 39.957 46.25C40.2894 46.9205 40.4556 47.7159 40.4556 48.6364ZM39.4329 48.6364C39.4329 47.8807 39.3065 47.2429 39.0536 46.723C38.8036 46.2031 38.4641 45.8097 38.0352 45.5426C37.609 45.2756 37.1317 45.142 36.6033 45.142C36.0749 45.142 35.5962 45.2756 35.1673 45.5426C34.7411 45.8097 34.4016 46.2031 34.1488 46.723C33.8988 47.2429 33.7738 47.8807 33.7738 48.6364C33.7738 49.392 33.8988 50.0298 34.1488 50.5497C34.4016 51.0696 34.7411 51.4631 35.1673 51.7301C35.5962 51.9972 36.0749 52.1307 36.6033 52.1307C37.1317 52.1307 37.609 51.9972 38.0352 51.7301C38.4641 51.4631 38.8036 51.0696 39.0536 50.5497C39.3065 50.0298 39.4329 49.392 39.4329 48.6364ZM41.392 45.2102V44.2727H47.9375V45.2102H45.1932V53H44.1364V45.2102H41.392Z" fill="black"/></svg>',
+        not_11: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="28" fill="#FF0000"/><rect x="34" y="47" width="4" height="25" fill="#FF0000"/><path d="M14.3494 56.5L36 19L57.6506 56.5H14.3494Z" fill="#D9D9D9" stroke="black"/><circle cx="36" cy="19" r="3.5" fill="#D9D9D9" stroke="black"/><path d="M30.9773 44.2727V53H29.9545L25.1989 46.1477H25.1136V53H24.0568V44.2727H25.0795L29.8523 51.142H29.9375V44.2727H30.9773ZM40.4556 48.6364C40.4556 49.5568 40.2894 50.3523 39.957 51.0227C39.6246 51.6932 39.1687 52.2102 38.5891 52.5739C38.0096 52.9375 37.3477 53.1193 36.6033 53.1193C35.859 53.1193 35.1971 52.9375 34.6175 52.5739C34.038 52.2102 33.582 51.6932 33.2496 51.0227C32.9173 50.3523 32.7511 49.5568 32.7511 48.6364C32.7511 47.7159 32.9173 46.9205 33.2496 46.25C33.582 45.5795 34.038 45.0625 34.6175 44.6989C35.1971 44.3352 35.859 44.1534 36.6033 44.1534C37.3477 44.1534 38.0096 44.3352 38.5891 44.6989C39.1687 45.0625 39.6246 45.5795 39.957 46.25C40.2894 46.9205 40.4556 47.7159 40.4556 48.6364ZM39.4329 48.6364C39.4329 47.8807 39.3065 47.2429 39.0536 46.723C38.8036 46.2031 38.4641 45.8097 38.0352 45.5426C37.609 45.2756 37.1317 45.142 36.6033 45.142C36.0749 45.142 35.5962 45.2756 35.1673 45.5426C34.7411 45.8097 34.4016 46.2031 34.1488 46.723C33.8988 47.2429 33.7738 47.8807 33.7738 48.6364C33.7738 49.392 33.8988 50.0298 34.1488 50.5497C34.4016 51.0696 34.7411 51.4631 35.1673 51.7301C35.5962 51.9972 36.0749 52.1307 36.6033 52.1307C37.1317 52.1307 37.609 51.9972 38.0352 51.7301C38.4641 51.4631 38.8036 51.0696 39.0536 50.5497C39.3065 50.0298 39.4329 49.392 39.4329 48.6364ZM41.392 45.2102V44.2727H47.9375V45.2102H45.1932V53H44.1364V45.2102H41.392Z" fill="black"/><rect x="21" y="23" width="47" height="4" transform="rotate(45 21 23)" fill="#FF0000"/><rect width="47" height="4" transform="matrix(-0.707107 0.707107 0.707107 0.707107 51 23)" fill="#FF0000"/></svg>',
+        input_0: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="54" fill="#929292"/><circle cx="36" cy="30" r="16" fill="url(#paint0_radial_6_200)"/><rect x="20" y="51" width="32" height="12" rx="6" fill="#D9D9D9"/><path d="M10.75 62.1193C10.108 62.1193 9.56108 61.9446 9.10938 61.5952C8.65767 61.2429 8.3125 60.733 8.07386 60.0653C7.83523 59.3949 7.71591 58.5852 7.71591 57.6364C7.71591 56.6932 7.83523 55.8878 8.07386 55.2202C8.31534 54.5497 8.66193 54.0384 9.11364 53.6861C9.56818 53.331 10.1136 53.1534 10.75 53.1534C11.3864 53.1534 11.9304 53.331 12.3821 53.6861C12.8366 54.0384 13.1832 54.5497 13.4219 55.2202C13.6634 55.8878 13.7841 56.6932 13.7841 57.6364C13.7841 58.5852 13.6648 59.3949 13.4261 60.0653C13.1875 60.733 12.8423 61.2429 12.3906 61.5952C11.9389 61.9446 11.392 62.1193 10.75 62.1193ZM10.75 61.1818C11.3864 61.1818 11.8807 60.875 12.233 60.2614C12.5852 59.6477 12.7614 58.7727 12.7614 57.6364C12.7614 56.8807 12.6804 56.2372 12.5185 55.706C12.3594 55.1747 12.1293 54.7699 11.8281 54.4915C11.5298 54.2131 11.1705 54.0739 10.75 54.0739C10.1193 54.0739 9.62642 54.3849 9.27131 55.0071C8.91619 55.6264 8.73864 56.5028 8.73864 57.6364C8.73864 58.392 8.81818 59.0341 8.97727 59.5625C9.13636 60.0909 9.36506 60.4929 9.66335 60.7685C9.96449 61.044 10.3267 61.1818 10.75 61.1818Z" fill="white"/><path d="M60.9716 53.2727V62H59.9148V54.3807H59.8636L57.733 55.7955V54.7216L59.9148 53.2727H60.9716Z" fill="white"/><rect x="18" y="55" width="18" height="4" rx="2" fill="#ABABAB"/><rect x="20.4648" y="56.4475" width="13.3564" height="4" rx="2" transform="rotate(-5.7621 20.4648 56.4475)" fill="#ABABAB" fill-opacity="0.27"/><rect x="16" y="54" width="6" height="6" rx="2" fill="#767676"/><defs><radialGradient id="paint0_radial_6_200" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(36 30) rotate(90) scale(16)"><stop stop-color="#A0A0A0"/><stop offset="1" stop-color="#6F6F6F"/></radialGradient></defs></svg>',
+        input_1: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="34" width="4" height="54" fill="#FF0000"/><g filter="url(#filter0_d_6_229)"><circle cx="36" cy="30" r="16" fill="url(#paint0_radial_6_229)"/></g><path d="M10.75 62.1193C10.108 62.1193 9.56108 61.9446 9.10938 61.5952C8.65767 61.2429 8.3125 60.733 8.07386 60.0653C7.83523 59.3949 7.71591 58.5852 7.71591 57.6364C7.71591 56.6932 7.83523 55.8878 8.07386 55.2202C8.31534 54.5497 8.66193 54.0384 9.11364 53.6861C9.56818 53.331 10.1136 53.1534 10.75 53.1534C11.3864 53.1534 11.9304 53.331 12.3821 53.6861C12.8366 54.0384 13.1832 54.5497 13.4219 55.2202C13.6634 55.8878 13.7841 56.6932 13.7841 57.6364C13.7841 58.5852 13.6648 59.3949 13.4261 60.0653C13.1875 60.733 12.8423 61.2429 12.3906 61.5952C11.9389 61.9446 11.392 62.1193 10.75 62.1193ZM10.75 61.1818C11.3864 61.1818 11.8807 60.875 12.233 60.2614C12.5852 59.6477 12.7614 58.7727 12.7614 57.6364C12.7614 56.8807 12.6804 56.2372 12.5185 55.706C12.3594 55.1747 12.1293 54.7699 11.8281 54.4915C11.5298 54.2131 11.1705 54.0739 10.75 54.0739C10.1193 54.0739 9.62642 54.3849 9.27131 55.0071C8.91619 55.6264 8.73864 56.5028 8.73864 57.6364C8.73864 58.392 8.81818 59.0341 8.97727 59.5625C9.13636 60.0909 9.36506 60.4929 9.66335 60.7685C9.96449 61.044 10.3267 61.1818 10.75 61.1818Z" fill="white"/><path d="M60.9716 53.2727V62H59.9148V54.3807H59.8636L57.733 55.7955V54.7216L59.9148 53.2727H60.9716Z" fill="white"/><rect width="32" height="12" rx="6" transform="matrix(-1 0 0 1 52 51)" fill="#D9D9D9"/><rect width="18" height="4" rx="2" transform="matrix(-1 0 0 1 54 55)" fill="#ABABAB"/><rect width="13.3564" height="4" rx="2" transform="matrix(-0.994947 -0.100398 -0.100398 0.994947 51.5352 56.4475)" fill="#ABABAB" fill-opacity="0.27"/><rect width="6" height="6" rx="2" transform="matrix(-1 0 0 1 56 54)" fill="#767676"/><defs><filter id="filter0_d_6_229" x="16" y="14" width="40" height="40" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="4"/><feGaussianBlur stdDeviation="2"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_6_229"/><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_6_229" result="shape"/></filter><radialGradient id="paint0_radial_6_229" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(36 30) rotate(90) scale(16)"><stop stop-color="#7E0505"/><stop offset="1" stop-color="#E40909"/></radialGradient></defs></svg>',
+        output_0: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_239)"><rect x="38" y="72" width="4" height="54" transform="rotate(-180 38 72)" fill="#929292"/><ellipse cx="36" cy="28" rx="20" ry="20" transform="rotate(-180 36 28)" fill="url(#paint0_radial_6_239)"/></g><defs><radialGradient id="paint0_radial_6_239" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(36 28) rotate(90) scale(20 20)"><stop stop-color="#A0A0A0"/><stop offset="1" stop-color="#6F6F6F"/></radialGradient><clipPath id="clip0_6_239"><rect width="72" height="72" fill="white" transform="translate(72 72) rotate(-180)"/></clipPath></defs></svg>',
+        output_1: '<svg width="100%" height="100%" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_248)"><rect x="38" y="72" width="4" height="54" transform="rotate(-180 38 72)" fill="#FF0000"/><g filter="url(#filter0_d_6_248)"><ellipse cx="36" cy="28" rx="20" ry="20" transform="rotate(-180 36 28)" fill="url(#paint0_radial_6_248)"/></g></g><defs><filter id="filter0_d_6_248" x="12" y="8" width="48" height="48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="4"/><feGaussianBlur stdDeviation="2"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_6_248"/><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_6_248" result="shape"/></filter><radialGradient id="paint0_radial_6_248" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(36 28) rotate(90) scale(20 20)"><stop stop-color="#7E0505"/><stop offset="1" stop-color="#E40909"/></radialGradient><clipPath id="clip0_6_248"><rect width="72" height="72" fill="white" transform="translate(72 72) rotate(-180)"/></clipPath></defs></svg>',
+    };
+
+    let placeholder = null;
+    let drag = null;
+    let drop = null;
+    let level = 0;
+    let running = false;
+    let tiles = [];
+    let tests = [];
+    let emitters = []
+    let processed = []
+
+    function tileAt(row, col) {
+        if (row < 0 || row >= Levels[level].grid.length) return null;
+        if (col < 0 || col >= Levels[level].grid[0].split(' ').length) return null;
+        return tiles[(row * Levels[level].grid[0].split(' ').length) + col];
+    }
+
+    class Tile {
+        element;
+        inputs = [0];
+        output = 0;
+        rotation = 0;
+        draggable = false;
+        droppable = true;
+
+        constructor(rotation, element, droppable, draggable) {
+            this.element = element;
+            this.rotation = rotation ? rotation % 4 : 0;
+            this.droppable = droppable;
+            this.draggable = draggable || false;
+
+            addClickHandler(element, (event) => {
+                event.preventDefault();
+                if (running) return;
+                if (!this.draggable) this.click();
+            });
+        }
+
+        reset() {
+            this.output = null;
+            this.inputs.fill(null);
+        }
+
+        render() {
+            this.element.innerHTML = this.asset();
+            this.element.classList.remove('rotate-0', 'rotate-1', 'rotate-2', 'rotate-3', 'rotate-4');
+            this.element.classList.add('rotate-' + this.rotation);
+        }
+
+        fixed() {
+            if (this.draggable) return true
+            return !this.droppable;
+        }
+
+        assetState() {
+            return this.output || 0;
+        }
+
+        assetName() {
+            return this.classname() + '_' + this.assetState();
+        }
+
+        asset() {
+            if (this.assetName() in Assets) return Assets[this.assetName()];
+        }
+
+        click() {}
+        update() {}
+
+        input(signal, direction = null) { }
+
+        classname() {
+            return this.constructor.name.toLowerCase();
+        }
+
+        rotate() {}
+
+        index() {
+            return tiles.indexOf(this);
+        }
+
+        row() {
+            return Math.floor(this.index() / Levels[level].grid[0].split(' ').length);
+        }
+
+        col() {
+            return Math.floor(this.index() % Levels[level].grid[0].split(' ').length);
+        }
+
+        top() {
+            return tileAt(this.row() - 1, this.col());
+        }
+
+        right() {
+            return tileAt(this.row(), this.col() + 1);
+        }
+
+        bottom() {
+            return tileAt(this.row() + 1, this.col());
+        }
+
+        left() {
+            return tileAt(this.row(), this.col() - 1);
+        }
+
+        emit(directions = []) {
+            if (directions.includes('top')) this.top()?.input(this.output, 'bottom');
+            if (directions.includes('right')) this.right()?.input(this.output, 'left');
+            if (directions.includes('bottom')) this.bottom()?.input(this.output, 'top');
+            if (directions.includes('left')) this.left()?.input(this.output, 'right');
+        }
+    }
+
+    class Rotating extends  Tile {
+        click() {
+            if (this.fixed()) return;
+
+            this.rotation += 1;
+            if (this.rotation === 4) {
+                setTimeout(() => {
+                    this.rotation = 0;
+                    updateGrid();
+                }, 100);
+            }
+            updateGrid();
+        }
+    }
+
+    class Wire extends  Rotating {
+        signal(direction, signal) {
+            this.inputs[0] = signal;
+            this.output = signal;
+            this.emit(direction);
+        }
+
+        input(signal, direction) {
+            if (this.output === 1) return;
+            if (direction === 'bottom' && (this.rotation === 0 || this.rotation === 2)) { this.signal(['top'], signal); }
+            if (direction === 'left' && (this.rotation === 1 || this.rotation === 3)) { this.signal(['right'], signal); }
+            if (direction === 'top' && (this.rotation === 0 || this.rotation === 2)) { this.signal(['bottom'], signal); }
+            if (direction === 'right' && (this.rotation === 1 || this.rotation === 3)) { this.signal(['left'], signal); }
+        }
+    }
+
+    class Curve extends  Wire {
+        input(signal, direction) {
+            if (this.output === 1) return;
+            if (direction === 'bottom' && this.rotation === 0) { this.signal(['right'], signal); }
+            if (direction === 'bottom' && this.rotation === 1) { this.signal(['left'], signal); }
+            if (direction === 'right' && this.rotation === 3) { this.signal(['top'], signal); }
+            if (direction === 'right' && this.rotation === 0) { this.signal(['bottom'], signal); }
+            if (direction === 'top' && this.rotation === 2) { this.signal(['left'], signal); }
+            if (direction === 'top' && this.rotation === 3) { this.signal(['right'], signal); }
+            if (direction === 'left' && this.rotation === 1) { this.signal(['bottom'], signal); }
+            if (direction === 'left' && this.rotation === 2) { this.signal(['top'], signal); }
+        }
+    }
+
+    class Splitter extends  Wire {
+        input(signal, direction) {
+            if (this.output === 1) return;
+            if (direction === 'bottom' && this.rotation === 0) { this.signal(['left', 'right'], signal); }
+            if (direction === 'bottom' && this.rotation === 1) { this.signal(['left', 'top'], signal); }
+            if (direction === 'bottom' && this.rotation === 3) { this.signal(['right', 'top'], signal); }
+            if (direction === 'right' && this.rotation === 0) { this.signal(['left', 'bottom'], signal); }
+            if (direction === 'right' && this.rotation === 2) { this.signal(['left', 'top'], signal); }
+            if (direction === 'right' && this.rotation === 3) { this.signal(['bottom', 'top'], signal); }
+            if (direction === 'top' && this.rotation === 2) { this.signal(['right', 'left'], signal); }
+            if (direction === 'top' && this.rotation === 1) { this.signal(['bottom', 'left'], signal); }
+            if (direction === 'top' && this.rotation === 3) { this.signal(['bottom', 'right'], signal); }
+            if (direction === 'top' && this.rotation === 3) { this.signal(['bottom', 'right'], signal); }
+            if (direction === 'left' && this.rotation === 0) { this.signal(['bottom', 'right'], signal); }
+            if (direction === 'left' && this.rotation === 1) { this.signal(['bottom', 'top'], signal); }
+            if (direction === 'left' && this.rotation === 2) { this.signal(['right', 'top'], signal); }
+        }
+    }
+
+    class Diode extends  Wire {
+        input(signal, direction) {
+            if (this.output === 1) return;
+            if (direction === 'bottom' && this.rotation === 0) { this.signal(['top'], signal); }
+            if (direction === 'bottom' && this.rotation === 2) { this.inputs[0] = signal; }
+            if (direction === 'left' && this.rotation === 1) { this.signal(['right'], signal); }
+            if (direction === 'left' && this.rotation === 3) { this.inputs[0] = signal; }
+            if (direction === 'top' && this.rotation === 2) { this.signal(['bottom'], signal); }
+            if (direction === 'top' && this.rotation === 0) { this.inputs[0] = signal; }
+            if (direction === 'right' && this.rotation === 3) { this.signal(['left'], signal); }
+            if (direction === 'right' && this.rotation === 1) { this.inputs[0] = signal; }
+        }
+
+        assetState() {
+            return '' + (this.inputs[0] || 0) + (this.output || 0);
+        }
+    }
+
+    class Or extends  Rotating {
+        inputs = [0, 0];
+
+        input(signal, direction) {
+            if (direction === 'left' && this.rotation === 0) { this.inputs[0] = signal; }
+            if (direction === 'right' && this.rotation === 0) { this.inputs[1] = signal; }
+            if (direction === 'top' && this.rotation === 1) { this.inputs[0] = signal; }
+            if (direction === 'bottom' && this.rotation === 1) { this.inputs[1] = signal; }
+            if (direction === 'right' && this.rotation === 2) { this.inputs[0] = signal; }
+            if (direction === 'left' && this.rotation === 2) { this.inputs[1] = signal; }
+            if (direction === 'bottom' && this.rotation === 4) { this.inputs[0] = signal; }
+            if (direction === 'top' && this.rotation === 4) { this.inputs[1] = signal; }
+            if (this.inputs[0] == null || this.inputs[1] == null) return;
+            this.output = (this.inputs[0] === 1 || this.inputs[1] === 1) ? 1 : 0
+            if (this.rotation === 0) { this.emit(['top']); }
+            if (this.rotation === 1) { this.emit(['right']); }
+            if (this.rotation === 2) { this.emit(['bottom']); }
+            if (this.rotation === 3) { this.emit(['left']); }
+        }
+
+        assetState() {
+            return '' + (this.inputs[0] || 0) + (this.inputs[1] || 0) + (this.inputs[0] == null || this.inputs[1] == null ? '0' : '');
+        }
+    }
+
+    class And extends  Rotating {
+        inputs = [0, 0];
+
+        input(signal, direction) {
+            if (direction === 'left' && this.rotation === 0) { this.inputs[0] = signal; }
+            if (direction === 'right' && this.rotation === 0) { this.inputs[1] = signal; }
+            if (direction === 'top' && this.rotation === 1) { this.inputs[0] = signal; }
+            if (direction === 'bottom' && this.rotation === 1) { this.inputs[1] = signal; }
+            if (direction === 'right' && this.rotation === 2) { this.inputs[0] = signal; }
+            if (direction === 'left' && this.rotation === 2) { this.inputs[1] = signal; }
+            if (direction === 'bottom' && this.rotation === 4) { this.inputs[0] = signal; }
+            if (direction === 'top' && this.rotation === 4) { this.inputs[1] = signal; }
+            if (this.inputs[0] == null || this.inputs[1] == null) return;
+            this.output = (this.inputs[0] === 1 && this.inputs[1] === 1) ? 1 : 0
+            if (this.rotation === 0) { this.emit(['top']); }
+            if (this.rotation === 1) { this.emit(['right']); }
+            if (this.rotation === 2) { this.emit(['bottom']); }
+            if (this.rotation === 3) { this.emit(['left']); }
+        }
+
+        assetState() {
+            return '' + (this.inputs[0] || 0) + (this.inputs[1] || 0);
+        }
+    }
+
+    class Not extends  Rotating {
+        signal(direction, signal) {
+            if (processed.includes(this)) {
+                this.inputs[0] = 1;
+                this.output = 1;
+                return;
+            }
+            this.inputs[0] = signal;
+            this.output = signal === 0 ? 1 : 0;
+            this.emit(direction);
+            processed.push(this);
+        }
+
+        input(signal, direction) {
+            if (direction === 'bottom' && (this.rotation === 0)) { this.signal('top', signal); }
+            if (direction === 'left' && (this.rotation === 1)) { this.signal('right', signal); }
+            if (direction === 'top' && (this.rotation === 2)) { this.signal('bottom', signal); }
+            if (direction === 'right' && (this.rotation === 3)) { this.signal('left', signal); }
+        }
+
+        assetState() {
+            return '' + (this.inputs[0] || 0) + (this.output || 0);
+        }
+    }
+
+    class Input extends  Tile {
+        click() {
+            this.switch(this.output === 1 ? 0 : 1);
+        }
+
+        switch(signal) {
+            this.output = parseInt(signal);
+            updateGrid();
+        }
+
+        update() {
+            const next = this.top();
+            if (!next) return;
+            next.input(this.output, 'bottom');
+        }
+    }
+
+    class Output extends Tile {
+        input(signal, direction) {
+            if (direction === 'bottom') { this.output = signal; }
+        }
+    }
+
+    const tileMap = {
+        tile: Tile,
+        input: Input,
+        wire: Wire,
+        curve: Curve,
+        splitter: Splitter,
+        diode: Diode,
+        or: Or,
+        and: And,
+        not: Not,
+        output: Output,
+    }
+
+    function createTile(type, rotation, element, droppable = true, draggable = false) {
+        const tile = new tileMap[type](rotation, element, droppable, draggable);
+        tile.render();
+        return tile;
+    }
+
+    function adjustGridScale() {
+        const footer = document.getElementById('footer');
+        const shelf = document.getElementById('shelf');
+        const grid = document.getElementById('grid');
+        const gridWrapper = document.getElementById('grid-wrapper');
+        const footerHeight = footer.offsetHeight;
+        const shelfHeight = shelf.offsetHeight;
+        const containerHeight = document.documentElement.clientHeight;
+        const remainingHeight = containerHeight - footerHeight - shelfHeight;
+        const gridHeight = grid.scrollHeight;
+        const scale = Math.min(1, remainingHeight / gridHeight);
+        grid.style.transform = `scale(${scale})`;
+        gridWrapper.style.height = `${remainingHeight}px`;
+        grid.style.marginTop = ((remainingHeight - (gridHeight * scale)) / 2.0) + 'px';
+    }
+
+    function touchHitsTarget(touch, target) {
+        const rect = target.getBoundingClientRect();
+        return touch.clientX >= rect.left && touch.clientX <= rect.right &&
+            touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+    }
+
+    function x(event) {
+        return event.touches ? event.touches[0].pageX : event.pageX;
+    }
+
+    function y(event) {
+        return event.touches ? event.touches[0].pageY : event.pageY;
+    }
+
+    function setupDraggable(tile) {
+        function handleDragStart(event) {
+            event.preventDefault();
+            if (running) return;
+            if (drag == null) {
+                drag = tile;
+                placeholder = tile.element.cloneNode(true);
+                document.body.append(placeholder);
+            }
+            placeholder.classList.add('dragging');
+            placeholder.style.position = 'absolute';
+            placeholder.style.left = (x(event) - (placeholder.offsetWidth * 0.5)) + 'px';
+            placeholder.style.top = (y(event) - (placeholder.offsetHeight * 0.7)) + 'px';
+        }
+        tile.element.addEventListener('touchstart', handleDragStart, { passive: false });
+        tile.element.addEventListener('mousedown', handleDragStart, { passive: false });
+    }
+
+    function updateGrid() {
+        emitters = [];
+        processed = [];
+        tiles.filter(tile => tile.classname() !== 'input').forEach(tile => { tile.reset() });
+        tiles.filter(tile => tile.classname() === 'input').forEach(tile => { tile.update() });
+        renderGrid();
+    }
+
+    function renderGrid() {
+        tiles.forEach(tile => { tile.render() });
+    }
+
+    function runTests() {
+        running = true;
+
+        for (i = 0; i < tests.length; ++i) {
+           tests[i].result = null;
+            document.getElementById("test-result-" + i).innerHTML = '';
+        }
+
+        test(0);
+
+        // running = false;
+    }
+
+    function test(index) {
+        document.getElementById("test-result-" + index).innerHTML = '⏳'
+        const inputs = tiles.filter(tile => tile.classname() === 'input');
+        for (i = 0; i < inputs.length; ++i) {
+            inputs[i].switch(tests[index].input[i]);
+        }
+        // updateGrid();
+
+        setTimeout(() => {
+            const outputs = tiles.filter(tile => tile.classname() === 'output');
+            let match = true;
+            for (i = 0; i < outputs.length; ++i) {
+                if (outputs[i].output == null || outputs[i].output.toString() !== tests[index].output[i].toString()) {
+                    match = false;
+                }
+            }
+            if (!match) {
+                document.getElementById("test-result-" + index).innerHTML = '❌';
+                running = false;
+                return;
+            }
+            else {
+                document.getElementById("test-result-" + index).innerHTML = '✅';
+            }
+            index++;
+            if (index < tests.length) {
+                test(index);
+                return;
+            }
+            hide("start-button");
+            hide("edit-button");
+            hide("run-button");
+            show("next-button");
+            running = false;
+        }, 1000);
+    }
+
+    function setupLevel() {
+        const grid = document.getElementById("grid");
+        grid.innerHTML = '';
+        const shelf = document.getElementById("shelf");
+        shelf.innerHTML = '';
+        tiles = [];
+
+        Levels[level].grid.forEach(row => {
+            const rowElement = document.createElement("div");
+            rowElement.className = "row";
+            grid.appendChild(rowElement);
+            row.split(' ').forEach(item => {
+                const droppable = item.startsWith('(');
+                const content = item.slice(1, -1);
+                const [type, rotation] = content.split('-');
+                const element = document.createElement("div");
+                const tile = createTile(type, rotation, element, droppable);
+                tiles.push(tile);
+                element.className = "tile" + (tile.fixed() ? ' fixed' : '');
+                rowElement.appendChild(element);
+            });
+        });
+        updateGrid();
+
+        Levels[level].shelf.split(' ').forEach(type => {
+            const element = document.createElement("div");
+            const tile = createTile(type, null, element, false, true);
+            element.className = "tile";
+            shelf.appendChild(element);
+            setupDraggable(tile);
+        });
+
+        content("level-name", '#' + (level + 1) + ': ' + Levels[level].name);
+
+        tests = Levels[level].tests.split(' ').map(test => {
+            [input, output] = test.split('-');
+            return {
+                input: input.split(''),
+                output: output.split(''),
+                result: null,
+            }
+        })
+        const results = document.getElementById("results");
+        results.innerHTML = '';
+        for (i = 0; i < tests.length; ++i) {
+            const tr = document.createElement("tr");
+            results.appendChild(tr);
+            const inputTd = document.createElement("td");
+            for (j = 0; j < tests[i].input.length; ++j) {
+                const span = document.createElement("span");
+                span.className = tests[i].input[j] === '0'? 'off' : 'on';
+                span.innerHTML = '&#11044;';
+                inputTd.appendChild(span);
+            }
+            tr.appendChild(inputTd);
+            const arrowTd = document.createElement("td");
+            tr.appendChild(arrowTd);
+            arrowTd.innerHTML = '→';
+            const outputTd = document.createElement("td");
+            for (j = 0; j < tests[i].output.length; ++j) {
+                const span = document.createElement("span");
+                span.className = tests[i].output[j] === '0'? 'off' : 'on';
+                span.innerHTML = '&#11044;';
+                outputTd.appendChild(span);
+            }
+            tr.appendChild(outputTd);
+            const resultTd = document.createElement("td");
+            resultTd.id = 'test-result-' + i;
+            tr.appendChild(resultTd);
+        }
+
+        show("start-button");
+        hide("edit-button");
+        hide("run-button");
+        hide("next-button");
+        show("dialog");
+
+        adjustGridScale();
+    }
+
+    function content(id, content) {
+        document.getElementById(id).innerHTML = content;
+    }
+
+    function show(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+
+    function hide(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    function addClickHandler(element, handler) {
+        element.addEventListener('touchend', handler);
+        element.addEventListener('mouseup', handler);
+    }
+
+    function setLevel(newLevel) {
+        level = newLevel;
+        if(level >= Levels.length) {
+            level = 0;
+        }
+        localStorage.setItem('level', level);
+        setupLevel();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        level = parseInt(localStorage.getItem('level')) || 0;
+        setupLevel();
+
+        window.addEventListener('resize', adjustGridScale);
+
+        Array.from(document.getElementsByClassName("hide-dialog")).forEach(element => {
+            addClickHandler(element, function(event) {
+                event.preventDefault();
+                if (running) return;
+                hide('dialog');
+            });
+        });
+
+        Array.from(document.getElementsByClassName("show-dialog")).forEach(element => {
+            addClickHandler(element, function(event) {
+                event.preventDefault();
+                if (running) return;
+                hide("start-button");
+                show("edit-button");
+                show("run-button");
+                hide("next-button");
+                show("dialog");
+            });
+        });
+
+        Array.from(document.getElementsByClassName("run-tests")).forEach(element => {
+            addClickHandler(element, function(event) {
+                event.preventDefault();
+                if (running) return;
+                runTests();
+            });
+        });
+
+        Array.from(document.getElementsByClassName("next-level")).forEach(element => {
+            addClickHandler(element, function(event) {
+                event.preventDefault();
+                if (running) return;
+                setLevel(level + 1);
+            });
+        });
+
+        function handleDocumentDrag(event) {
+            if (placeholder) {
+                placeholder.style.left = (x(event) - (placeholder.offsetWidth * 0.5)) + 'px';
+                placeholder.style.top = (y(event) - (placeholder.offsetHeight * 0.7)) + 'px';
+            }
+
+            const touchLocation = event.touches ? event.touches[0] : event;
+            drop = null;
+            tiles.forEach(tile => {
+                if (tile.fixed()) return;
+                if (touchHitsTarget(touchLocation, tile.element) && drag) {
+                    tile.element.classList.add('drop')
+                    drop = tile;
+                } else {
+                    tile.element.classList.remove('drop')
+                }
+            });
+        }
+
+        function handleDocumentDrop(event) {
+            if (drop != null) {
+                const element = document.createElement("div");
+                const tile = createTile(drag.classname(), 0, element);
+                element.className = "tile";
+                drop.element.replaceWith(tile.element);
+                tiles[drop.index()] = tile;
+                updateGrid();
+            }
+            if (placeholder) placeholder.remove();
+            drop = null;
+            drag = null;
+            placeholder = null;
+        }
+        document.addEventListener('touchmove', handleDocumentDrag);
+        document.addEventListener('mousemove', handleDocumentDrag);
+        document.addEventListener('touchend', handleDocumentDrop);
+        document.addEventListener('mouseup', handleDocumentDrop);
+    });
+</script>
+</body>
+</html>
